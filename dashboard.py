@@ -289,7 +289,7 @@ def shift_adjustments():
 
     # add budget
     fig.add_trace(go.Scatter
-                    (x=[i+open_time for i in range(len(constraints))], y=budget, name='Budget Hours'))
+                    (x=[i+open_time-1 for i in range(len(constraints))], y=budget, name='Budget Hours'))
     # show the graph
 
     c2.plotly_chart(fig)
