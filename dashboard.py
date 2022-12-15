@@ -284,7 +284,7 @@ def shift_adjustments():
     fig = go.Figure()
     # add labour model
     fig.add_trace(go.Bar(x=[
-        i+open_time-1 for i in range(len(constraints))], y=constraints, name='Labour Model Hours'))
+        i+open_time for i in range(len(constraints))], y=constraints, name='Labour Model Hours'))
     fig.add_trace(go.Bar(x=list(occurences.keys()), y=list(occurences.values()), name='Generated Rota Hours'))
 
     # add budget
