@@ -143,7 +143,7 @@ def Modelling():
         elif percentile_option == '25%':
             data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
 
-
+        percentile_option = percentile_option + ' Percentile' if percentile_option != 'Average' else percentile_option
         constraints = data_to_save['Labour Model Hours'].values # we need them in a list format for the Esteban algorithm
         budget = data_to_save['Budget Rota Hours'] 
 
@@ -170,7 +170,7 @@ def Modelling():
         # add actuals and budget
         fig.add_trace(go.Bar(x=data_to_save.index, y=data_to_save["Actual Hours '22"], name='Actuals'))
         fig.add_trace(go.Scatter(x=data_to_save.index, y=data_to_save['Budget Rota Hours'],name='Budget'))           
-        fig.update_layout(title=f'Averages - Labour Model Hours for {site_code} - {department} - {month} - {day_}',
+        fig.update_layout(title=f'{percentile_option} - Labour Model Hours for {site_code} - {department} - {month} - {day_}',
                             xaxis_title='Hour',    
                                 yaxis_title='Labour Model Hours')
         st.plotly_chart(fig, use_container_width=True)
