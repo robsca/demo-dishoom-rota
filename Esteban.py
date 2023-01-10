@@ -1,16 +1,27 @@
 # Rota Creator
 import streamlit as st
+import random
+
 class Esteban_:
     def __init__(self, constraint, seed_value = 42):
-        import random
-        # set random seed
+        '''
+        parameters:
+            constraint: list of integers -> [1,2,2,3,3,3,2,2,2,2,3,3,3,4,4,4,4,2,2,1,] 
+                - every integer represents the number of people needed for that hour
+            seed_value: integer -> 42
+                - the seed value for the random number generator
+        '''
         random.seed(seed_value)
-
         self.constraint = constraint
 
     def make_it_binary(self, constraint):
         '''
-        make the constraint binary
+        parameters:
+            constraint: list of integers -> [1,2,2,3,3,3,2,2,2,2,3,3,3,4,4,4,4,2,2,1,]
+                - every integer represents the number of people needed for that hour
+            
+        returns:
+            const_: list of integers -> [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         '''
         if not constraint:
             constraint = self.constraint
@@ -27,8 +38,12 @@ class Esteban_:
 
     def populate_layer_1(self, layer):
         '''
-        Take every layer and divide it into groups
-        retur a list of groups
+        parameters:
+            layer: list of integers -> [1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1]
+                - every integer represents the number of people needed for that hour
+
+        returns:
+            groups: list of lists -> [[0,1,2,3,4,5,6,7,8,9],[11,12,13,14,15,16,17,18,19]]
         '''
         layer_full = True if sum(layer) == len(layer) else False
         if layer_full:
@@ -62,9 +77,15 @@ class Esteban_:
     def random_splitter(self, group, len_shifts):
         import random
         '''
-        This is the core of the problem
+        parameters:
+            group: list of integers -> [0,1,2,3,4,5,6,7,8,9]
+                - every integer represents the index of the hour
+            len_shifts: list of integers -> [2,3,4] 
+                - every integer represents the length of the shift
+
+        returns:
+            shifts: list of lists -> [[0,2],[2,5],[5,9]]
         '''
-        
         shifts = []
         hours_to_cover = len(group) 
         while hours_to_cover > 0:
@@ -230,7 +251,3 @@ class Esteban_:
         self.shifts = shifts 
         self.groups = groups
         return self.rota, shifts
-
-
-
-

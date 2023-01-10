@@ -135,13 +135,16 @@ def delete_rota_data():
     conn.commit()
     conn.close()
 
-def delete_rota_data_same_day(day):
+def delete_rota_data_same_day(day, departments, site_code):
     conn = sqlite3.connect('Rota.db')
     c = conn.cursor()
 
-    c.execute("DELETE FROM rota WHERE day = ?", (day,))
+    c.execute("DELETE FROM rota WHERE day = ? AND departments = ? AND site_code = ?", (day, departments, site_code))
     conn.commit()
     conn.close()
+
+#----------------------------------------------
+
 # now same for shifts that contain 
 if __name__ == '__main__':
     #create_table()
