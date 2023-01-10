@@ -24,16 +24,32 @@ def Modelling():
     # get the date in a week
     in_a_week = today + timedelta(days=7)
     # get the start and end dates
-    start_date = c1.date_input('Start date', today)
-    if start_date != today:
-        end_date = c2.date_input('End date', start_date + timedelta(days=7))
+    start_date = c1.date_input('**Start date**', today)
+    start_date_year = start_date.year
+ 
+    # check if it's a monday
+    is_monday = start_date.weekday() == 0
+    # if it's not a monday, get the next monday
+    if not is_monday:
+        st.info('Please select a Monday')
+        # block the rest of the code
+        st.stop()
     else:
-        end_date = c2.date_input('End date', in_a_week)
+        pass
+    # if the start date is not today, get the end date
+    if start_date != today:
+        end_date = c2.date_input('**End date**', start_date + timedelta(days=7))
+    else:
+        end_date = c2.date_input('**End date**', in_a_week)
+
+    end_date_year  = end_date.year
+    if start_date_year != end_date_year:
+        years = start_date_year, end_date_year
+    else:
+        years = start_date_year
     
     # Select country
-    today = date.today()
-    year = today.year
-    uk_holidays = holidays.UnitedKingdom(years = year)
+    uk_holidays = holidays.UnitedKingdom(years = years)
 
     list_of_holidays = []
     for ptr in uk_holidays:
