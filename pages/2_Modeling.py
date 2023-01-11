@@ -75,7 +75,7 @@ def Modelling():
         random_seed = 42
 
     # get unique restaurants, months, days, departments
-    restaurants = df['Site Code'].unique();                  months = df['Month'].unique()
+    restaurants = df['Site Code'].unique();                  months = ['All'] + df['Month'].unique().tolist()
     days_list = ['Week Rota'] + df['Day'].unique().tolist(); departments = df['Department'].unique()
 
 
@@ -102,7 +102,12 @@ def Modelling():
     # 5. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
     data = data[data['Department'] == department]
-    data = data[data['Month'] == month]
+    if month != 'All':
+        data = data[data['Month'] == month]
+    else: 
+        month = 0
+        pass
+
 
     def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None):
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
