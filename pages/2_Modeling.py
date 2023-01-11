@@ -106,7 +106,7 @@ def Modelling():
     # transform month column in string
     data['Month'] = data['Month'].astype(int)
 
-    st.write(data)
+    #st.write(data)
  
 
     def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 0, site_code = site_code):
