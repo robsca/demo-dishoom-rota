@@ -216,7 +216,7 @@ def Modelling():
 
         # 8. Generate the rota
         constraints = data_to_save['Labour Model Hours'].values
-        st.write(constraints)
+        #st.write(constraints)
 
         # get parameters for Algorithm
         open_time_ = data_to_save.index.min()
