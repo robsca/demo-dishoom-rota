@@ -80,15 +80,22 @@ def Modelling():
 
 
     # 4. Create the sidebar
-    with st.sidebar.expander('Selections ⚙️', expanded=True):
+    with st.sidebar.expander('⚙️ Selections ', expanded=False):
         site_code = st.selectbox('Select a restaurant', restaurants)
         department = st.selectbox('Select a department', departments, index=4)
         month = st.selectbox('Select a month', months)
         day_ = st.selectbox('Select a day', days_list)
 
-    expander_percentiles = st.sidebar.expander('Percentiles 🪛', expanded=False)
+    expander_percentiles = st.sidebar.expander('🪛 Percentiles ', expanded=False)
+    # add selectbox to allow the user to select the percentile  for all the days
+    
+    select_perc = expander_percentiles.selectbox('Select the percentile for all the days', [None, 'Average', '95th Percentile', '90th Percentile', '75th Percentile', '50th Percentile', '25th Percentile'])
+    if select_perc != None:
+        percentile_message = select_perc
+    else:
+        percentile_message = None
 
-    with st.sidebar.expander('Settings 🔧', expanded=False):
+    with st.sidebar.expander('🔧 Shift Parameters ', expanded=False):
         max_hours = int(st.number_input('Max hours', min_value=0, max_value=12, value=9))
         min_hours = int(st.number_input('Min hours', min_value=3, max_value=8, value=4))
 
@@ -97,7 +104,7 @@ def Modelling():
     data = data[data['Department'] == department]
     data = data[data['Month'] == month]
 
-    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None):
+    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None):
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
 
         data = data[data['Day'] == day_]
@@ -123,28 +130,53 @@ def Modelling():
 
         def transform_in_25_percentile(x):
             return x.quantile(0.25)
+        
         # Create the UI to allow user to 
         unique_key = f'{site_code}_{department}_{month}_{day_}'
-        if percentile_message:
-            percentile_option = expander_percentiles.selectbox(percentile_message, ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
+        # add a selectbox to allow the user to select the percentile  for all the days
+        if percentile_for_all != None:
+            percentile_option = percentile_for_all
+
+            # apply the transformation
+            if percentile_option == 'Average':
+                pass
+            elif percentile_option == '95th Percentile':
+                data_to_save = data.groupby('Hour').apply(transform_in_95_percentile).round(0)
+            elif percentile_option == '90th Percentile':
+                data_to_save = data.groupby('Hour').apply(transform_in_90_percentile).round(0)
+            elif percentile_option == '75th Percentile':
+                data_to_save = data.groupby('Hour').apply(transform_in_75_percentile).round(0)
+            elif percentile_option == '50th Percentile':
+                data_to_save = data.groupby('Hour').apply(transform_in_50_percentile).round(0)
+            elif percentile_option == '25th Percentile':
+                data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
+
         else:
-            percentile_option = expander_percentiles.selectbox('Select a percentile', ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
-        if percentile_option == 'Average':
-            pass
-        elif percentile_option == '95%':
-            data_to_save = data.groupby('Hour').apply(transform_in_95_percentile).round(0)
-        elif percentile_option == '90%':
-            data_to_save = data.groupby('Hour').apply(transform_in_90_percentile).round(0)
-        elif percentile_option == '75%':
-            data_to_save = data.groupby('Hour').apply(transform_in_75_percentile).round(0)
-        elif percentile_option == '50%':
-            data_to_save = data.groupby('Hour').apply(transform_in_50_percentile).round(0)
-        elif percentile_option == '25%':
-            data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
+            if percentile_message:
+                percentile_option = expander_percentiles.selectbox(percentile_message, ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
+            else:
+                percentile_option = expander_percentiles.selectbox('Select a percentile', ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
+            
+            if percentile_option == 'Average':
+                pass
+            elif percentile_option == '95%':
+                data_to_save = data.groupby('Hour').apply(transform_in_95_percentile).round(0)
+            elif percentile_option == '90%':
+                data_to_save = data.groupby('Hour').apply(transform_in_90_percentile).round(0)
+            elif percentile_option == '75%':
+                data_to_save = data.groupby('Hour').apply(transform_in_75_percentile).round(0)
+            elif percentile_option == '50%':
+                data_to_save = data.groupby('Hour').apply(transform_in_50_percentile).round(0)
+            elif percentile_option == '25%':
+                data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
+            else:
+                pass
 
         percentile_option = percentile_option + ' Percentile' if percentile_option != 'Average' else percentile_option
         constraints = data_to_save['Labour Model Hours'].values # we need them in a list format for the Esteban algorithm
         budget = data_to_save['Budget Rota Hours'] 
+
+        
 
         # 6. Save the data to the DB
         if deletion:
@@ -176,6 +208,18 @@ def Modelling():
 
         # 8. Generate the rota
         constraints = data_to_save['Labour Model Hours'].values
+
+        # get parameters for Algorithm
+        open_time_ = data_to_save.index.min()
+        #st.write(f'Open time: {open_time}')
+        constraints = data_to_save['Labour Model Hours'].values
+        constraints_ = []   
+        columns = st.columns(len(constraints))
+        for i, c in enumerate(constraints):
+            a = columns[i].number_input(f'Hour {i + open_time_}', value=c, min_value=0.0, max_value=100.0, step=1.0, key=f'hour_{i}_constraint_{day}')
+            constraints_.append(a)
+        constraints = constraints_
+
         
         esteban = Esteban_(constraints, random_seed)
         rota, shifts = esteban.solving_(open_time, min_hours, max_hours)
@@ -255,18 +299,16 @@ def Modelling():
         delete_data()
         # for all days
         days_ = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        expander_percentiles.write('---')
         for day, date in zip(days_, dates):
-            # transform in string
-            date = str(date)
             # if the date is a holiday
             if date in df_holidays['Date'].values:
                 # get the holiday name, and add it to the expander
                 holiday_name = df_holidays[df_holidays['Date'] == date]['Holiday'].values[0]
                 with st.expander(f'{date} - **{day}** - {holiday_name}'):
-                    handle_single_d(data, day, deletion=False, percentile_message= f'Percentile for **{day}** - {department} - {site_code}')
+                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
             else:
                 # if the date is not a holiday, just add the day to the expander
                 with st.expander(f'{date} - **{day}**'):
-                    handle_single_d(data, day, deletion=False, percentile_message= f'Percentile for **{day}** - {department} - {site_code}')
-                
+                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
 Modelling()         
