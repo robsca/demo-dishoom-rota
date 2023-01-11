@@ -19,6 +19,22 @@ def tornado():
     path_1 = 'Labour_Model_Hours_w32_w43.csv'
     # 1.1 Read the data
     df_1 = pd.read_csv(path_1)
+    expander_data  = st.expander('Show all data')
+    df_1['Hour'] = df_1['Hour'].apply(lambda x: 25 if x > 25 else x)
+
+    with expander_data:
+        select_dep = st.selectbox('Select the department', df_1['Department'].unique())
+        df1_copy = df_1.copy()
+        df1_copy = df1_copy[df1_copy['Department'] == select_dep]
+        # select day
+        select_day = st.selectbox('Select the day', df1_copy['Day'].unique())
+        df1_copy = df1_copy[df1_copy['Day'] == select_day]
+        # select restaurant
+        select_rest = st.selectbox('Select the restaurant', df1_copy['Site Code'].unique())
+        df1_copy = df1_copy[df1_copy['Site Code'] == select_rest]
+        st.write(df1_copy)
+
+    # if hour is > than 25 then its 25
     # 1.2 Merge the data and drop the rows with NaN values
     df_Labour_Model_Hours = df_1.dropna()
     # 1.3 Add month and day columns
@@ -60,14 +76,12 @@ def tornado():
     # keep only - Site Code, Department, start time, end time, day
     df_Budget = df_Budget[['Site Code', 'Department', 'Start Time (Hour)', 'End Time (Hour)', 'Hours', 'Day']]
 
-
     #with st.expander('Show all data'):
         # The data is in the right format
         #st.write(df_Labour_Model_Hours) # will be used to calculate the rota
         #st.write(df_Budget) # will be used to check the shifts
         # departments should be the same in both dataframes
-    dep_labour = df_Labour_Model_Hours['Department'].unique()
-    dep_budget = df_Budget['Department'].unique()
+
     #st.write('The departments in LABOUR MODEL are: ', dep_labour)
     #st.write('The departments in BUDGET are: ', dep_budget)
     # modify from expeditors to expo
@@ -95,6 +109,10 @@ def tornado():
     # 2. Filter the data
     data = df_Labour_Model_Hours
     data = data[data['Month'] == month]
+    if month != 'All':
+        data = data[data['Month'] == month]
+    else: 
+        pass
 
     if site_code != 'All':
         data = data[data['Site Code'] == site_code]
@@ -135,6 +153,7 @@ def tornado():
 
 
     data = data_Labour_Model_Hours
+    sum_labour_hours = 0
     sum_generated_hours = 0
     # filter the data
     hours_counter_generated = {} # for each hour it will count how many people start at that hour
@@ -164,6 +183,8 @@ def tornado():
                     #ADDING Calculate hours counter
                     # 1. create an appropriate rota
                     contraints = data_to_save['Labour Model Hours'].values
+                    # add the contraints to the counter
+                    sum_labour_hours += sum(contraints)
                     esteban = Esteban_(contraints)
                     # open time
                     rota, shifts = esteban.solving_(open_time, min_hours, max_hours)
@@ -182,11 +203,28 @@ def tornado():
                             shifts_.append((mid, end))
                         else:
                             shifts_.append(shift)
+
                     shifts = shifts_
                     #2 add the shifts to the counter
                     shifts_count += len(shifts)
 
                     #Split the shift
+                    starting_hours = [shift[0] for shift in shifts]
+                    ending_hours = [shift[1] for shift in shifts]
+                    # check if the starting times are correct
+                    new_shift = []
+                    for i, shift in enumerate(shifts):
+                        if shift[0] < 5:
+                            # delete the shift
+                            pass
+                        elif shift[0] > 20:
+                            # change the startin time to 20
+                            new_shift.append((20, shift[1]))
+                        else:
+                            # start time 
+                            new_shift.append(shift)
+                    shifts = new_shift
+                    
                     starting_hours = [shift[0] for shift in shifts]
                     ending_hours = [shift[1] for shift in shifts]
                     # count how many people start at each hour
@@ -230,12 +268,14 @@ def tornado():
         start = start.split(':')[0]
         end = end.split(':')[0]
 
+
         # convert to int
         start = int(start)
         end = int(end)
-
-        # st.write(f'Start: {start}')
-        # st.write(f'End: {end}')
+        if start == 3:
+            # change it to 15, just a mistake in the data
+            start = 15
+            #st.write(f'Row: {row}')
 
         if start in hours_counter_budget:
             hours_counter_budget[start] += 1
@@ -246,7 +286,8 @@ def tornado():
 
         # add the length of the shift to the sum
         sum_budget_hours += length
-        
+    #st.write(f'Budget Hours Counter: {hours_counter_budget}')
+    
     #st.write(f'Budget Hours Counter: {hours_counter_budget}')
     #st.write(f'Budget Hours Counter Length: {hours_counter_budget_length}')
 
@@ -256,9 +297,11 @@ def tornado():
     # fig 1
     # Keep only (5 to 21) for demo -> check full range (0, 25) for Algorithm Optimization 
     # Data that is been feed to the algorithm need to be reformat in a way that no bigger value that 1am is feeded for closing time
+    # There were some mistakes in the data, so I had to change the 3am to 15hrs
+
     
-    hours_counter_budget = {k: v for k, v in hours_counter_budget.items() if k >= 5 and k <= 21}
-    hours_counter_generated = {k: v for k, v in hours_counter_generated.items() if k >= 5 and k <= 21}
+    #hours_counter_budget = {k: v for k, v in hours_counter_budget.items() if k >= 5 and k <= 21}
+    #hours_counter_generated = {k: v for k, v in hours_counter_generated.items() if k >= 5 and k <= 21}
     
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -290,8 +333,8 @@ def tornado():
 
     # fig 2
     # keep only 5 to 21
-    hours_counter_budget_length = {k: v for k, v in hours_counter_budget_length.items() if k >= 5 and k <= 21}
-    hours_counter_generated_length = {k: v for k, v in hours_counter_generated_length.items() if k >= 5 and k <= 21}
+    #hours_counter_budget_length = {k: v for k, v in hours_counter_budget_length.items() if k >= 5 and k <= 21}
+    #hours_counter_generated_length = {k: v for k, v in hours_counter_generated_length.items() if k >= 5 and k <= 21}
 
     fig_2 = go.Figure()
     fig_2.add_trace(go.Bar(
@@ -355,6 +398,9 @@ def tornado():
     c1.subheader('Average Length of Shift in Generated Rota')
     c1.write(f'{round(average_length_generated, 2)} hrs')
     c1.write('---')
+
+    c2.write('**Labour Model Hours total**')
+    c2.write(f'{sum_labour_hours}')
 
 
 # run the app

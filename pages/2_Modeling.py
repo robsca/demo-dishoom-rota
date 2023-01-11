@@ -102,17 +102,12 @@ def Modelling():
     # 5. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
     data = data[data['Department'] == department]
-    if month != 'All':
-        data = data[data['Month'] == month]
-    else: 
-        month = 0
-        pass
-
+    # transform month column in string
+    data['Month'] = data['Month'].astype(int)
+ 
 
     def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None):
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
-
-        data = data[data['Day'] == day_]
 
         # Data is ready to be worked with.
 
@@ -221,7 +216,7 @@ def Modelling():
         constraints_ = []   
         columns = st.columns(len(constraints))
         for i, c in enumerate(constraints):
-            a = columns[i].number_input(f'Hour {i + open_time_}', value=c, min_value=0.0, max_value=100.0, step=1.0, key=f'hour_{i}_constraint_{day}')
+            a = columns[i].number_input(f'Hour {i + open_time_}', value=c, min_value=0.0, max_value=100.0, step=1.0, key=f'hour_{i}_constraint_{day_}')
             constraints_.append(a)
         constraints = constraints_
 
@@ -306,14 +301,28 @@ def Modelling():
         days_ = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         expander_percentiles.write('---')
         for day, date in zip(days_, dates):
+            #st.write('Day: ', day)
+            # filter the day
+            data = df[df['Day'] == day]
+            # filter the department
+            data = data[data['Department'] == department]
+            # filter the month  
+            if month != 'All':
+                #st.write(month)
+                data = data[data['Month'] == month]
+            else: 
+                month = 0
+                data = data
             # if the date is a holiday
             if date in df_holidays['Date'].values:
                 # get the holiday name, and add it to the expander
                 holiday_name = df_holidays[df_holidays['Date'] == date]['Holiday'].values[0]
                 with st.expander(f'{date} - **{day}** - {holiday_name}'):
+                    #st.write(data)
                     handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
             else:
                 # if the date is not a holiday, just add the day to the expander
                 with st.expander(f'{date} - **{day}**'):
+                    #st.write(data)
                     handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
 Modelling()         
