@@ -106,10 +106,18 @@ def Modelling():
     data['Month'] = data['Month'].astype(int)
  
 
-    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None):
+    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 0):
+
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
 
         # Data is ready to be worked with.
+        # if month is 0 pass else filter
+        if month != 'All':
+            data = data[data['Month'] == int(month)]
+        else:
+            month = 0
+            months = [1,2,3,4,5,6,7,8,9,10,11,12]
+            data = data[data['Month'].isin(months)]
 
         data_to_save = data.groupby('Hour').mean().round(0) # take the averages for each hours and rounding the values.
         # If we want to model the data we can do it here.
@@ -208,6 +216,7 @@ def Modelling():
 
         # 8. Generate the rota
         constraints = data_to_save['Labour Model Hours'].values
+        st.write(constraints)
 
         # get parameters for Algorithm
         open_time_ = data_to_save.index.min()
@@ -307,22 +316,17 @@ def Modelling():
             # filter the department
             data = data[data['Department'] == department]
             # filter the month  
-            if month != 'All':
-                #st.write(month)
-                data = data[data['Month'] == month]
-            else: 
-                month = 0
-                data = data
+
             # if the date is a holiday
             if date in df_holidays['Date'].values:
                 # get the holiday name, and add it to the expander
                 holiday_name = df_holidays[df_holidays['Date'] == date]['Holiday'].values[0]
                 with st.expander(f'{date} - **{day}** - {holiday_name}'):
                     #st.write(data)
-                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
+                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc, month=month)
             else:
                 # if the date is not a holiday, just add the day to the expander
                 with st.expander(f'{date} - **{day}**'):
                     #st.write(data)
-                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc)
+                    handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc, month=month)
 Modelling()         
