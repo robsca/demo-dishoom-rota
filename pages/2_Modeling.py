@@ -99,14 +99,17 @@ def Modelling():
         max_hours = int(st.number_input('Max hours', min_value=0, max_value=12, value=9))
         min_hours = int(st.number_input('Min hours', min_value=3, max_value=8, value=4))
 
+
     # 5. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
     data = data[data['Department'] == department]
     # transform month column in string
     data['Month'] = data['Month'].astype(int)
+
+    st.write(data)
  
 
-    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 0):
+    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 0, site_code = site_code):
 
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
 
@@ -118,6 +121,9 @@ def Modelling():
             month = 0
             months = [1,2,3,4,5,6,7,8,9,10,11,12]
             data = data[data['Month'].isin(months)]
+
+        # filter site code and department
+        data = data[data['Site Code'] == site_code]
 
         data_to_save = data.groupby('Hour').mean().round(0) # take the averages for each hours and rounding the values.
         # If we want to model the data we can do it here.
@@ -138,6 +144,9 @@ def Modelling():
 
         def transform_in_25_percentile(x):
             return x.quantile(0.25)
+
+        # filter site code and department
+        data = data[data['Site Code'] == site_code]
         
         # Create the UI to allow user to 
         unique_key = f'{site_code}_{department}_{month}_{day_}'
@@ -303,6 +312,7 @@ def Modelling():
     
     if day_ != 'Week Rota':
         handle_single_d(data, day_, deletion=True)
+    
     else:
         delete_shift_data()
         delete_data()

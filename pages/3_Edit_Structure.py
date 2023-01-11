@@ -26,8 +26,9 @@ def handle_one_day(d, constraints_table, shifts_table):
     #--------------------------------------------
     try:
         with st.expander(f'{d}'): # create an expander for each day
+            day = d
+            month = constraints_table_[0][4]
             site_code = constraints_table_[0][0]
-            day, month = d, constraints_table_[0][3]
             constraints, budget, actuals, hours = [], [], [], []
             for i, constraint in enumerate(constraints_table_):
                 constraints.append(int(constraint[-1]))
