@@ -80,25 +80,22 @@ def Modelling():
 
 
     # 4. Create the sidebar
-    with st.sidebar.expander('Selections', expanded=True):
+    with st.sidebar.expander('Selections ⚙️', expanded=True):
         site_code = st.selectbox('Select a restaurant', restaurants)
         department = st.selectbox('Select a department', departments, index=4)
         month = st.selectbox('Select a month', months)
         day_ = st.selectbox('Select a day', days_list)
 
-    expander_percentiles = st.sidebar.expander('Percentiles', expanded=False)
+    expander_percentiles = st.sidebar.expander('Percentiles 🪛', expanded=False)
 
     with st.sidebar.expander('Settings 🔧', expanded=False):
         max_hours = int(st.number_input('Max hours', min_value=0, max_value=12, value=9))
         min_hours = int(st.number_input('Min hours', min_value=3, max_value=8, value=4))
 
-
-
     # 5. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
     data = data[data['Department'] == department]
     data = data[data['Month'] == month]
-
 
     def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None):
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
@@ -110,6 +107,8 @@ def Modelling():
         data_to_save = data.groupby('Hour').mean().round(0) # take the averages for each hours and rounding the values.
         # If we want to model the data we can do it here.
 
+        # ADDING PERCENTILES MODELLING
+        # 1. Create the function to transform the data
         def transform_in_95_percentile(x):
             return x.quantile(0.95)
 
@@ -124,7 +123,7 @@ def Modelling():
 
         def transform_in_25_percentile(x):
             return x.quantile(0.25)
-
+        # Create the UI to allow user to 
         unique_key = f'{site_code}_{department}_{month}_{day_}'
         if percentile_message:
             percentile_option = expander_percentiles.selectbox(percentile_message, ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
@@ -152,7 +151,7 @@ def Modelling():
             delete_shift_data()
             delete_data()
 
-        open_time = 100 # set a high number to be able to compar
+        open_time = 100 # set a high number to be able to compare with any initial value
         for index, row in data_to_save.iterrows():
             # get the values
             hour = index
@@ -257,16 +256,16 @@ def Modelling():
         # for all days
         days_ = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         for day, date in zip(days_, dates):
-            # create a expander for every day with date from the dates list 
             # transform in string
             date = str(date)
-            # transform the date to datetime
+            # if the date is a holiday
             if date in df_holidays['Date'].values:
-                # get the holiday name
+                # get the holiday name, and add it to the expander
                 holiday_name = df_holidays[df_holidays['Date'] == date]['Holiday'].values[0]
                 with st.expander(f'{date} - **{day}** - {holiday_name}'):
                     handle_single_d(data, day, deletion=False, percentile_message= f'Percentile for **{day}** - {department} - {site_code}')
             else:
+                # if the date is not a holiday, just add the day to the expander
                 with st.expander(f'{date} - **{day}**'):
                     handle_single_d(data, day, deletion=False, percentile_message= f'Percentile for **{day}** - {department} - {site_code}')
                 

@@ -126,7 +126,7 @@ def handle_one_day(d, constraints_table, shifts_table):
             # add budget
             fig.add_trace(go.Scatter(x=sorted(list(occurences.keys())), y=budget, name='Budget'))
 
-            c2.plotly_chart(fig)
+            c2.plotly_chart(fig, use_container_width=True)
             c2.write(new_shifts)
 
             with c2: # SAVE BUTTON 

@@ -29,8 +29,8 @@ def rota_():
             empty_dataframe = pd.DataFrame(columns=['Site Code', 'Department', 'Month', 'Day', 'Start Time', 'End Time'])
             for i in rota_data:
                 # add to dataframe
-                empty_dataframe = empty_dataframe.append({'Site Code': i[0], 'Department': i[1], 'Month': i[2], 'Day': i[3], 'Start Time': i[4], 'End Time': i[5]}, ignore_index=True)
-
+                empty_dataframe = pd.concat([empty_dataframe, pd.DataFrame({'Site Code': [i[0]], 'Department': [i[1]], 'Month': [i[2]], 'Day': [i[3]], 'Start Time': [i[4]], 'End Time': [i[5]]})], ignore_index=True)
+            # add a zero to all the start times and end times
             # download the dataframe
             csv = convert_df(empty_dataframe)
             st.download_button(
@@ -75,8 +75,10 @@ def rota_():
         for i in rota_data:
             # add to dataframe with pd.concat
             empty_dataframe = pd.concat([empty_dataframe, pd.DataFrame({'Site Code': [i[0]], 'Department': [i[1]], 'Day': [i[3]], 'Start Time': [i[4]], 'End Time': [i[5]]})], ignore_index=True)
-        site_code, department = rota_data[0][0], rota_data[0][1]
-
+        # modify format of start time and end time
+        empty_dataframe['Start Time'] = empty_dataframe['Start Time'].apply(lambda x: str(x) + '0')
+        empty_dataframe['End Time']   = empty_dataframe['End Time'].apply(lambda x: str(x) + '0')
+        
         interface()
     except:
         st.warning('Please add rota data from **Edit Structure**')

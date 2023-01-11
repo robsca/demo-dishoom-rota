@@ -1,10 +1,8 @@
 import pandas as pd
-import hydralit_components as hc
 import streamlit as st
 import plotly.graph_objects as go
 st.set_page_config(layout='wide',initial_sidebar_state='collapsed')
 from Esteban import Esteban_
-
 
 max_hours = st.sidebar.number_input('Max hours', min_value=0, max_value=12, value=9)
 min_hours = st.sidebar.number_input('Min hours', min_value=3, max_value=8, value=4)
@@ -144,13 +142,19 @@ def tornado():
 
     shifts_count = 0
     for i in range(len(restaurants)):
+            # get the restaurant
             site_code = restaurants[i]
+            # filter the data by restaurant
             data_restaurant = data[data['Site Code'] == site_code]
+            # get all departments
             for department in departments:
+                # filter the data by department
                 data_department = data_restaurant[data_restaurant['Department'] == department]
+                # filter the data by month
                 data_month = data_department[data_department['Month'] == month]
                 # add day name column
                 for day in days:
+                    # filter the data by day
                     data_day = data_month[data_month['Day'] == day]
                     # get average in that day
                     data_to_save = data_day.groupby('Hour').mean().round(0)
@@ -179,11 +183,10 @@ def tornado():
                         else:
                             shifts_.append(shift)
                     shifts = shifts_
-                    # add the shifts to the counter
+                    #2 add the shifts to the counter
                     shifts_count += len(shifts)
 
                     #Split the shift
-
                     starting_hours = [shift[0] for shift in shifts]
                     ending_hours = [shift[1] for shift in shifts]
                     # count how many people start at each hour
@@ -198,8 +201,6 @@ def tornado():
 
                         # add the length of the shift to the sum
                         sum_generated_hours += length
-
-                        # add the length of the shift to the counter
 
     #st.write(f'Generated Rota Hours Counter: {hours_counter_generated}')
     #st.write('---')
@@ -253,7 +254,9 @@ def tornado():
     # plot data
     import plotly.graph_objects as go
     # fig 1
-    # keep only 5 to 21
+    # Keep only (5 to 21) for demo -> check full range (0, 25) for Algorithm Optimization 
+    # Data that is been feed to the algorithm need to be reformat in a way that no bigger value that 1am is feeded for closing time
+    
     hours_counter_budget = {k: v for k, v in hours_counter_budget.items() if k >= 5 and k <= 21}
     hours_counter_generated = {k: v for k, v in hours_counter_generated.items() if k >= 5 and k <= 21}
     
