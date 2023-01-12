@@ -37,9 +37,9 @@ def handle_one_day(d, constraints_table, shifts_table):
                 hours.append(int(constraint[2]))
                 department = constraint[1]
             open_time = min(hours)
+            open_time_for_slider = 5
             st.subheader(f'**Department**: {department}')
             st.write(f'**Site Code**: {site_code}')
-            st.write(f'**Month**: {month}')
             st.write(f'**Day**: {day}')
             st.write('---')
 
@@ -74,7 +74,7 @@ def handle_one_day(d, constraints_table, shifts_table):
                     st.write(f'**{department} - {index+1}** : {row["Start"]} - {row["End"]}')
                     key = f'{department} - {index+1} - {row["Start"]} - {row["End"]} - {d}' # key for the slider
                     value = (int(row['Start']), int(row['End']))                                   # value for the slider
-                    sl = st.slider(f'{index}', min_value=min_value, max_value=max_value, value=value, key=key) # create the slider
+                    sl = st.slider(f'{index}', min_value=open_time_for_slider, max_value=max_value, value=value, key=key) # create the slider
                     
                     #'''MERGE BUTTON'''
                     # merge button
@@ -100,7 +100,7 @@ def handle_one_day(d, constraints_table, shifts_table):
                         print('This is the slider: ',sl)
                         # update the shift table
                         shifts.loc[index, 'End'] = sl[1]
-                    '''Still Experimenting with Merge Button: IN PROGRESS'''
+                    #'''Still Experimenting with Merge Button: IN PROGRESS'''
                     if validity_shift_checker(sl, min_hours=min_hours, max_hours=max_hours):
                         sliders.append(sl)
             

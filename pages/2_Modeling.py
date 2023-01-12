@@ -6,16 +6,16 @@ path_1 = 'Labour_Model_Hours_w32_w43.csv'
 # The script will now take the data and model it to get the averages.
 
 def Modelling():
+    from datetime import date, datetime
+    from datetime import timedelta
+    import holidays
     from Esteban import Esteban_
     from database import delete_shift_data, delete_data, delete_shift_data 
     df = pd.read_csv(path_1)
 
 
-    from datetime import date, datetime
-    from datetime import timedelta
-    import holidays
-
     c1,c2 = st.columns(2)
+
     # get today's date
     today = date.today()
     # if today is not monday, get the next monday
@@ -36,6 +36,7 @@ def Modelling():
         st.stop()
     else:
         pass
+
     # if the start date is not today, get the end date
     if start_date != today:
         end_date = c2.date_input('**End date**', start_date + timedelta(days=7))
@@ -68,6 +69,7 @@ def Modelling():
     for i in range((end_date - start_date).days + 1):
         dates.append(start_date + timedelta(days=i))
 
+    # Set random Seed for generation
     seed_button = st.sidebar.button('Generate Structure')
     if seed_button:
         random_seed = random.randint(0, 1000)
@@ -102,31 +104,33 @@ def Modelling():
 
     # 5. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
-    data = data[data['Department'] == department]
     # transform month column in string
     data['Month'] = data['Month'].astype(int)
 
     #st.write(data)
  
-
-    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 0, site_code = site_code):
-
+    def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 'All', site_code = site_code, department = department):
+        #st.write(site_code)
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
+        #st.write(data)
+        # filter by site_code and department and day
+        data = data[data['Department'] == department]
+        data = data[data['Day'] == day_]
+        # and site_code
+        #st.write(data)
+        data = data[data['Site Code'] == site_code]
+        # if day == 'Wednesday':
+        #     st.write(data)
 
         # Data is ready to be worked with.
-        # if month is 0 pass else filter
-        if month != 'All':
-            data = data[data['Month'] == int(month)]
+        if month  == 'All':
+            month = 1
         else:
-            month = 0
-            months = [1,2,3,4,5,6,7,8,9,10,11,12]
-            data = data[data['Month'].isin(months)]
-
-        # filter site code and department
-        data = data[data['Site Code'] == site_code]
-
+            data= data[data['Month'] == int(month)]
+            st.write(month)
+    
         data_to_save = data.groupby('Hour').mean().round(0) # take the averages for each hours and rounding the values.
-        # If we want to model the data we can do it here.
+        #st.write(data)
 
         # ADDING PERCENTILES MODELLING
         # 1. Create the function to transform the data
@@ -144,9 +148,6 @@ def Modelling():
 
         def transform_in_25_percentile(x):
             return x.quantile(0.25)
-
-        # filter site code and department
-        data = data[data['Site Code'] == site_code]
         
         # Create the UI to allow user to 
         unique_key = f'{site_code}_{department}_{month}_{day_}'
@@ -192,8 +193,6 @@ def Modelling():
         percentile_option = percentile_option + ' Percentile' if percentile_option != 'Average' else percentile_option
         constraints = data_to_save['Labour Model Hours'].values # we need them in a list format for the Esteban algorithm
         budget = data_to_save['Budget Rota Hours'] 
-
-        
 
         # 6. Save the data to the DB
         if deletion:
@@ -258,6 +257,19 @@ def Modelling():
             else:
                 shifts_.append(shift)
         shifts = shifts_
+
+        new_adjusted_shifts = []
+        for shift in shifts:
+            start = shift[0]
+            if start > 20: 
+                start = 20
+            end = shift[1]
+
+            new_adjusted_shifts.append((start, end))
+
+        shifts = new_adjusted_shifts
+
+
         #'''Split the shift'''
 
 
@@ -325,8 +337,7 @@ def Modelling():
             data = df[df['Day'] == day]
             # filter the department
             data = data[data['Department'] == department]
-            # filter the month  
-
+            date = str(date)
             # if the date is a holiday
             if date in df_holidays['Date'].values:
                 # get the holiday name, and add it to the expander

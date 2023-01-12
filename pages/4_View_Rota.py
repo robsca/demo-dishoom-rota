@@ -26,10 +26,15 @@ def rota_():
 
         if save_button:
             # merge all the days ina single dataframe
-            empty_dataframe = pd.DataFrame(columns=['Site Code', 'Department', 'Month', 'Day', 'Start Time', 'End Time'])
+            empty_dataframe = pd.DataFrame(columns=['Site Code', 'Department', 'Day', 'Start Time', 'End Time'])
             for i in rota_data:
                 # add to dataframe
-                empty_dataframe = pd.concat([empty_dataframe, pd.DataFrame({'Site Code': [i[0]], 'Department': [i[1]], 'Month': [i[2]], 'Day': [i[3]], 'Start Time': [i[4]], 'End Time': [i[5]]})], ignore_index=True)
+                empty_dataframe = pd.concat([empty_dataframe, pd.DataFrame({'Site Code': [i[0]], 'Department': [i[1]], 'Day': [i[3]], 'Start Time': [i[4]], 'End Time': [i[5]]})], ignore_index=True)
+            
+            # modify start time and end time
+            empty_dataframe['Start Time'] = empty_dataframe['Start Time'].apply(lambda x: str(x) + '0')
+            empty_dataframe['End Time'] = empty_dataframe['End Time'].apply(lambda x: str(x) + '0')
+            #st.write(empty_dataframe)
             # add a zero to all the start times and end times
             # download the dataframe
             csv = convert_df(empty_dataframe)
@@ -67,20 +72,25 @@ def rota_():
         if day != 'All':
             empty_dataframe = empty_dataframe[empty_dataframe['Day'] == day]
         empty_dataframe = empty_dataframe.fillna(0) # instead of nan show 0
+        
+
+        # modify format of start time and end time
+        col_to_mod = ['Monday Start Time', 'Monday End Time', 'Tuesday Start Time', 'Tuesday End Time', 'Wednesday Start Time', 'Wednesday End Time', 'Thursday Start Time', 'Thursday End Time', 'Friday Start Time', 'Friday End Time', 'Saturday Start Time', 'Saturday End Time', 'Sunday Start Time', 'Sunday End Time']
+        
+        for i in col_to_mod:
+            empty_dataframe[i] = empty_dataframe[i].apply(lambda x: str(x) + '0')
+
+
+       
         st.write(empty_dataframe)
+        
 
     try:
         rota_data = get_rota_data()
-        empty_dataframe = pd.DataFrame(columns=['Site Code', 'Department', 'Day', 'Start Time', 'End Time'])
-        for i in rota_data:
-            # add to dataframe with pd.concat
-            empty_dataframe = pd.concat([empty_dataframe, pd.DataFrame({'Site Code': [i[0]], 'Department': [i[1]], 'Day': [i[3]], 'Start Time': [i[4]], 'End Time': [i[5]]})], ignore_index=True)
-        # modify format of start time and end time
-        empty_dataframe['Start Time'] = empty_dataframe['Start Time'].apply(lambda x: str(x) + '0')
-        empty_dataframe['End Time']   = empty_dataframe['End Time'].apply(lambda x: str(x) + '0')
-        
+      
         interface()
     except:
+
         st.warning('Please add rota data from **Edit Structure**')
 
 if __name__ == '__main__':

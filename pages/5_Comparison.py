@@ -155,11 +155,13 @@ def tornado():
     data = data_Labour_Model_Hours
     sum_labour_hours = 0
     sum_generated_hours = 0
+    sum_actual_hours = 0
     # filter the data
     hours_counter_generated = {} # for each hour it will count how many people start at that hour
     hours_counter_generated_length = {} # for each hour it will store the length of the shift and sum it up
 
     shifts_count = 0
+
     for i in range(len(restaurants)):
             # get the restaurant
             site_code = restaurants[i]
@@ -183,6 +185,10 @@ def tornado():
                     #ADDING Calculate hours counter
                     # 1. create an appropriate rota
                     contraints = data_to_save['Labour Model Hours'].values
+                    # actual hours
+                    actual_hours = data_to_save["Actual Hours '22"].values
+                    # add the actual hours to the counter
+                    sum_actual_hours += sum(actual_hours)
                     # add the contraints to the counter
                     sum_labour_hours += sum(contraints)
                     esteban = Esteban_(contraints)
@@ -371,36 +377,41 @@ def tornado():
     c1.plotly_chart(fig)
     c2.plotly_chart(fig_2)
 
-    c1.subheader('Number of Shifts in Budget')
+    c1.write('**Number of Shifts in Budget**')
     c1.write(f'{number_of_shifts_budget}')
     c1.write('---')
-    c1.subheader('Number of Shifts in Generated Rota')
+    c1.write('**Number of Shifts in Generated Rota**')
     c1.write(f'{number_of_shift_algo}')
     c1.write('---')
 
 
     # sum of budget hours
-    c2.subheader('Sum of Budget Hours')
+    c2.write('**Sum of Budget Hours**')
     c2.write(f'{round(sum_budget_hours, 2)}')
     c2.write('---')
-    c2.subheader('Sum of Generated Rota Hours')
+    c2.write('**Sum of Generated Rota Hours**')
     c2.write(f'{round(sum_generated_hours, 2)}')
     c2.write('---')
 
 
     # average length of shift in budget
     average_length_budget = sum_budget_hours / number_of_shifts_budget
-    c1.subheader('Average Length of Shift in Budget')
+    c1.write('**Average Length of Shift in Budget**')
     c1.write(f'{round(average_length_budget, 2)} hrs')
     c1.write('---')
     # average length of shift in generated rota
     average_length_generated = sum_generated_hours / number_of_shift_algo
-    c1.subheader('Average Length of Shift in Generated Rota')
+    c1.write('**Average Length of Shift in Generated Rota**')
     c1.write(f'{round(average_length_generated, 2)} hrs')
     c1.write('---')
 
     c2.write('**Labour Model Hours total**')
     c2.write(f'{sum_labour_hours}')
+
+    c2.write('---')
+    c2.write('**Actual Hours Total**')
+    c2.write(f'{sum_actual_hours}')
+    c2.write('---')
 
 
 # run the app
