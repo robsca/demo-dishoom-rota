@@ -84,7 +84,6 @@ def tornado():
 
     #st.write('The departments in LABOUR MODEL are: ', dep_labour)
     #st.write('The departments in BUDGET are: ', dep_budget)
-    # modify from expeditors to expo
     df_Budget['Department'] = df_Budget['Department'].replace('Expeditors', 'Expo')
 
 

@@ -2,20 +2,17 @@ import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='expanded')
 import pandas as pd; import random; import plotly.graph_objects as go
 
-path_1 = 'Labour_Model_Hours_w32_w43.csv'
+path_1 = 'Labour_Model_Hours_all.csv'
 # The script will now take the data and model it to get the averages.
 
-def Modelling():
-    from datetime import date, datetime
-    from datetime import timedelta
-    import holidays
-    from Esteban import Esteban_
-    from database import delete_shift_data, delete_data, delete_shift_data 
-    df = pd.read_csv(path_1)
 
-
-    c1,c2 = st.columns(2)
-
+# HELPER FUNCTIONS
+def get_dates():
+    '''
+    This function returns today's date and the date in a week
+    If today is not monday, it returns the next monday and the date in a week
+    '''
+    from datetime import date, datetime, timedelta
     # get today's date
     today = date.today()
     # if today is not monday, get the next monday
@@ -23,32 +20,11 @@ def Modelling():
         today += timedelta(days=7-today.weekday())
     # get the date in a week
     in_a_week = today + timedelta(days=7)
-    # get the start and end dates
-    start_date = c1.date_input('**Start date**', today)
-    start_date_year = start_date.year
- 
-    # check if it's a monday
-    is_monday = start_date.weekday() == 0
-    # if it's not a monday, get the next monday
-    if not is_monday:
-        st.info('Please select a Monday')
-        # block the rest of the code
-        st.stop()
-    else:
-        pass
+    return today, in_a_week
 
-    # if the start date is not today, get the end date
-    if start_date != today:
-        end_date = c2.date_input('**End date**', start_date + timedelta(days=7))
-    else:
-        end_date = c2.date_input('**End date**', in_a_week)
-
-    end_date_year  = end_date.year
-    if start_date_year != end_date_year:
-        years = start_date_year, end_date_year
-    else:
-        years = start_date_year
-    
+def get_holidays(start_date, end_date, years):
+    import holidays
+    from datetime import datetime
     # Select country
     uk_holidays = holidays.UnitedKingdom(years = years)
 
@@ -61,63 +37,121 @@ def Modelling():
 
     # transform the list into a dataframe
     df_holidays = pd.DataFrame(list_of_holidays, columns = ['Date', 'Holiday'])
+    return df_holidays
 
+def hadle_start_end_date(start_date, today, in_a_week, c2):
+    '''
+    This function checks if the start date is a monday
+    '''
+    from datetime import date, datetime, timedelta
+    # check if it's a monday
+    is_monday = start_date.weekday() == 0
+    # if it's not a monday, get the next monday
+    if not is_monday:
+        st.info('Please select a Monday')
+        # block the rest of the code
+        st.stop()
+    else:
+        pass
+    # if the start date is not today, get the end date
+    if start_date != today:
+        end_date = c2.date_input('**End date**', start_date + timedelta(days=7))
+    else:
+        end_date = c2.date_input('**End date**', in_a_week)
+    # get the year of the start date and end date
+    start_date_year = start_date.year
+    end_date_year  = end_date.year
+    if start_date_year != end_date_year:
+        years = start_date_year, end_date_year
+    else:
+        years = start_date_year
+    return start_date, end_date, years
 
+def get_dates_between_start_end(start_date, end_date):
     # create a list of dates
     from datetime import timedelta
     dates = []
     for i in range((end_date - start_date).days + 1):
         dates.append(start_date + timedelta(days=i))
+    return dates
 
+def random_seed_generator():
     # Set random Seed for generation
     seed_button = st.sidebar.button('Generate Structure')
     if seed_button:
         random_seed = random.randint(0, 1000)
     else:
         random_seed = 42
+    return random_seed
+
+# LAMBDA FUNCTIONS
+
+def transform_in_percentile(x, percentile):
+    '''
+    25 percentile = 0.25
+    '''
+    percentile = percentile/100
+    return x.quantile(percentile)
+
+
+# MAIN FUNCTION
+def Modelling():
+    c1,c2 = st.columns(2)
+    from datetime import date, timedelta
+    from Esteban import Esteban_
+    from database import delete_shift_data, delete_data, delete_shift_data 
+    df = pd.read_csv(path_1)
 
     # get unique restaurants, months, days, departments
-    restaurants = df['Site Code'].unique();                  months = ['All'] + df['Month'].unique().tolist()
-    days_list = ['Week Rota'] + df['Day'].unique().tolist(); departments = df['Department'].unique()
+    restaurants = df['Site Code'].unique()
+    # sort the restaurant by the name
+    restaurants = sorted(restaurants)
+    months = ['All'] + df['Month'].unique().tolist()
+    days_list = ['Week Rota'] + df['Day'].unique().tolist()
+    departments = df['Department'].unique()
+    # sort the departments by the name
+    departments = sorted(departments)
 
+    random_seed = random_seed_generator()
+    today, in_a_week = get_dates()
 
-    # 4. Create the sidebar
-    with st.sidebar.expander('⚙️ Selections ', expanded=False):
-        site_code = st.selectbox('Select a restaurant', restaurants)
-        department = st.selectbox('Select a department', departments, index=4)
-        month = st.selectbox('Select a month', months)
-        day_ = st.selectbox('Select a day', days_list)
-
+    # Create the sidebar expanders 
+    sidebar_expander =  st.sidebar.expander('⚙️ Selections ', expanded=False)
     expander_percentiles = st.sidebar.expander('🪛 Percentiles ', expanded=False)
-    # add selectbox to allow the user to select the percentile  for all the days
-    
+    expander_shift_parameters = st.sidebar.expander('🔧 Shift Parameters ', expanded=False)
+
+    # Get the start date and end date
+    start_date = c1.date_input('**Start date**', today)
+    start_date, end_date, years = hadle_start_end_date(start_date, today, in_a_week, c2)
+
+    # Once the user has selected the start and end date, we can get the holidays
+    df_holidays = get_holidays(start_date, end_date, years)
+    dates = get_dates_between_start_end(start_date, end_date)
+
+    # 1. Filling Expander Selections
+    site_code = sidebar_expander.selectbox('Select a restaurant', restaurants)
+    department = sidebar_expander.selectbox('Select a department', departments, index=len(departments)-1)
+    month = sidebar_expander.selectbox('Select a month', months)
+    day_ = sidebar_expander.selectbox('Select a day', days_list)
+
+    # 2. Filling Expander Percentiles
     select_perc = expander_percentiles.selectbox('Select the percentile for all the days', [None, 'Average', '95th Percentile', '90th Percentile', '75th Percentile', '50th Percentile', '25th Percentile'])
-    if select_perc != None:
-        percentile_message = select_perc
-    else:
-        percentile_message = None
+    percentile_message = None if select_perc == None else select_perc
 
-    with st.sidebar.expander('🔧 Shift Parameters ', expanded=False):
-        max_hours = int(st.number_input('Max hours', min_value=0, max_value=12, value=9))
-        min_hours = int(st.number_input('Min hours', min_value=3, max_value=8, value=4))
+    # 3. Filling Expander Shift Parameters
+    max_hours = int(expander_shift_parameters.number_input('Max hours', min_value=0, max_value=12, value=9))
+    min_hours = int(expander_shift_parameters.number_input('Min hours', min_value=3, max_value=8, value=4))
 
-
-    # 5. Filter the data from User selections
+    # 4. Filter the data from User selections
     data = df[df['Site Code'] == site_code] 
-    # transform month column in string
     data['Month'] = data['Month'].astype(int)
 
-    #st.write(data)
  
     def handle_single_d(data, day_, deletion = False, percentile_message = None, date_on_expander = None, percentile_for_all = None, month = 'All', site_code = site_code, department = department):
-        #st.write(site_code)
         from database import insert_shift_data, delete_shift_data, insert_data, delete_data, insert_shift_data, delete_shift_data 
-        #st.write(data)
         # filter by site_code and department and day
         data = data[data['Department'] == department]
         data = data[data['Day'] == day_]
-        # and site_code
-        #st.write(data)
         data = data[data['Site Code'] == site_code]
         # if day == 'Wednesday':
         #     st.write(data)
@@ -128,27 +162,11 @@ def Modelling():
         else:
             data= data[data['Month'] == int(month)]
             st.write(month)
-    
-        data_to_save = data.groupby('Hour').mean().round(0) # take the averages for each hours and rounding the values.
-        #st.write(data)
+
+
 
         # ADDING PERCENTILES MODELLING
-        # 1. Create the function to transform the data
-        def transform_in_95_percentile(x):
-            return x.quantile(0.95)
-
-        def transform_in_90_percentile(x):
-            return x.quantile(0.9)
-
-        def transform_in_75_percentile(x):
-            return x.quantile(0.75)
-
-        def transform_in_50_percentile(x):
-            return x.quantile(0.5)
-
-        def transform_in_25_percentile(x):
-            return x.quantile(0.25)
-        
+        data_to_save = data.groupby('Hour').mean().round(0) # DEFAULT - take the averages for each hours and rounding the values.
         # Create the UI to allow user to 
         unique_key = f'{site_code}_{department}_{month}_{day_}'
         # add a selectbox to allow the user to select the percentile  for all the days
@@ -156,124 +174,118 @@ def Modelling():
             percentile_option = percentile_for_all
 
             # apply the transformation
-            if percentile_option == 'Average':
-                pass
-            elif percentile_option == '95th Percentile':
-                data_to_save = data.groupby('Hour').apply(transform_in_95_percentile).round(0)
-            elif percentile_option == '90th Percentile':
-                data_to_save = data.groupby('Hour').apply(transform_in_90_percentile).round(0)
-            elif percentile_option == '75th Percentile':
-                data_to_save = data.groupby('Hour').apply(transform_in_75_percentile).round(0)
-            elif percentile_option == '50th Percentile':
-                data_to_save = data.groupby('Hour').apply(transform_in_50_percentile).round(0)
-            elif percentile_option == '25th Percentile':
-                data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
-
+            if percentile_option != 'Average':
+                # take only the first 2 characters
+                percentile_option = percentile_option[:2]
+                # convert to float
+                percentile_option = float(percentile_option)
+                # apply the transformation
+                data_to_save = data.groupby('Hour').apply(transform_in_percentile, percentile = percentile_option).round(0)
+                percentile_option = str(percentile_option) 
         else:
             if percentile_message:
                 percentile_option = expander_percentiles.selectbox(percentile_message, ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
             else:
                 percentile_option = expander_percentiles.selectbox('Select a percentile', ['Average', '95%', '90%', '75%', '50%', '25%'], key = unique_key)
             
-            if percentile_option == 'Average':
-                pass
-            elif percentile_option == '95%':
-                data_to_save = data.groupby('Hour').apply(transform_in_95_percentile).round(0)
-            elif percentile_option == '90%':
-                data_to_save = data.groupby('Hour').apply(transform_in_90_percentile).round(0)
-            elif percentile_option == '75%':
-                data_to_save = data.groupby('Hour').apply(transform_in_75_percentile).round(0)
-            elif percentile_option == '50%':
-                data_to_save = data.groupby('Hour').apply(transform_in_50_percentile).round(0)
-            elif percentile_option == '25%':
-                data_to_save = data.groupby('Hour').apply(transform_in_25_percentile).round(0)
-            else:
-                pass
+            if percentile_option != 'Average':
+                # take only the first 2 characters
+                percentile_option = percentile_option[:2]
+                # convert to float
+                percentile_option = float(percentile_option)
+                # apply the transformation
+                data_to_save = data.groupby('Hour').apply(transform_in_percentile, percentile = percentile_option).round(0)
+                percentile_option = str(percentile_option)
 
         percentile_option = percentile_option + ' Percentile' if percentile_option != 'Average' else percentile_option
         constraints = data_to_save['Labour Model Hours'].values # we need them in a list format for the Esteban algorithm
-        budget = data_to_save['Budget Rota Hours'] 
 
         # 6. Save the data to the DB
         if deletion:
             delete_shift_data()
-            delete_data()
+            delete_data()   
 
-        open_time = 100 # set a high number to be able to compare with any initial value
-        for index, row in data_to_save.iterrows():
-            # get the values
-            hour = index
-            if hour < open_time:
-                open_time = hour
-            # if hour 
-            labour_model_hours = row['Labour Model Hours']
-            actual_hours = row["Actual Hours '22"]
-            budget_rota_hours = row['Budget Rota Hours']
-            insert_data(site_code, department, int(month), day_, actual_hours, budget_rota_hours, labour_model_hours)
+        def record_to_database():
+            open_time = 100 # set a high number to be able to compare with any initial value
+            for index, row in data_to_save.iterrows():
+                # get the values
+                hour = index
+                if hour < open_time:
+                    open_time = hour
+                # if hour 
+                labour_model_hours = row['Labour Model Hours']
+                actual_hours = row["Actual Hours '22"]
+                budget_rota_hours = row['Budget Rota Hours']
+                insert_data(site_code, department, int(month), day_, actual_hours, budget_rota_hours, labour_model_hours)
+
+            return open_time
         
-        # 7.PLOT ACTUALS, BUDGET AND LABOUR MODEL HOURS
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=data_to_save.index, y=data_to_save['Labour Model Hours'], name='Labour Model Hours'))
-        # add actuals and budget
-        fig.add_trace(go.Bar(x=data_to_save.index, y=data_to_save["Actual Hours '22"], name='Actuals'))
-        fig.add_trace(go.Scatter(x=data_to_save.index, y=data_to_save['Budget Rota Hours'],name='Budget'))           
-        fig.update_layout(title=f'{percentile_option} - Labour Model Hours for {site_code} - {department} - {month} - {day_}',
-                            xaxis_title='Hour',    
-                                yaxis_title='Labour Model Hours')
-        st.plotly_chart(fig, use_container_width=True)
+        open_time = record_to_database()
+
+        def plot_actuals_budget_labour_model_hours():
+            # 7.PLOT ACTUALS, BUDGET AND LABOUR MODEL HOURS
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=data_to_save.index, y=data_to_save['Labour Model Hours'], name='Labour Model Hours'))
+            # add actuals and budget
+            fig.add_trace(go.Bar(x=data_to_save.index, y=data_to_save["Actual Hours '22"], name='Actuals'))
+            fig.add_trace(go.Scatter(x=data_to_save.index, y=data_to_save['Budget Rota Hours'],name='Budget'))           
+            fig.update_layout(title=f'{percentile_option} - Labour Model Hours for {site_code} - {department} - {month} - {day_}',
+                                xaxis_title='Hour',    
+                                    yaxis_title='Labour Model Hours')
+            return fig
+        
+        st.plotly_chart(plot_actuals_budget_labour_model_hours(), use_container_width=True)
 
         # 8. Generate the rota
-        constraints = data_to_save['Labour Model Hours'].values
-        #st.write(constraints)
-
-        # get parameters for Algorithm
         open_time_ = data_to_save.index.min()
-        #st.write(f'Open time: {open_time}')
         constraints = data_to_save['Labour Model Hours'].values
         constraints_ = []   
+
         columns = st.columns(len(constraints))
         for i, c in enumerate(constraints):
             a = columns[i].number_input(f'Hour {i + open_time_}', value=c, min_value=0.0, max_value=100.0, step=1.0, key=f'hour_{i}_constraint_{day_}')
             constraints_.append(a)
         constraints = constraints_
-
-        
         esteban = Esteban_(constraints, random_seed)
         rota, shifts = esteban.solving_(open_time, min_hours, max_hours)
         #st.write(f'Shifts: {shifts}')
 
-        shift_to_split = []
-        shifts_ = []
-        for shift in shifts:
-            start = shift[0]
-            end = shift[1]
-            if end - start > max_hours:
-                shift_to_split.append(shift)
-                #st.write(f'Shift to split: {shift}')
-                # divide the shift in two
-                mid = (start + end) // 2
-                shifts_.append((start, mid))
-                shifts_.append((mid, end))
-            else:
-                shifts_.append(shift)
-        shifts = shifts_
+        def optimize_shifts(shifts):
+            '''
+            If a shift is longer than max_hours, split it in two
+            '''
+            shift_to_split = []
+            shifts_ = []
+            for shift in shifts:
+                start = shift[0]
+                end = shift[1]
+                if end - start > max_hours:
+                    shift_to_split.append(shift)
+                    #st.write(f'Shift to split: {shift}')
+                    # divide the shift in two
+                    mid = (start + end) // 2
+                    shifts_.append((start, mid))
+                    shifts_.append((mid, end))
+                else:
+                    shifts_.append(shift)
+            shifts = shifts_
 
-        new_adjusted_shifts = []
-        for shift in shifts:
-            start = shift[0]
-            if start > 20: 
-                start = 20
-            end = shift[1]
+            '''
+            if a shift start after 20:00, move it to 20:00
+            '''
+            new_adjusted_shifts = []
+            for shift in shifts:
+                start = shift[0]
+                if start > 20: 
+                    start = 20
+                end = shift[1]
+                new_adjusted_shifts.append((start, end))
+            shifts = new_adjusted_shifts
+            return shifts 
 
-            new_adjusted_shifts.append((start, end))
+        shifts = optimize_shifts(shifts)
 
-        shifts = new_adjusted_shifts
-
-
-        #'''Split the shift'''
-
-
-        #''''''
+        
         # 9. Plot the rota
         fig = go.Figure()
         hours = [i+open_time for i in range(len(rota))]
@@ -289,7 +301,8 @@ def Modelling():
         st.plotly_chart(fig, use_container_width=True)
         st.write('---')
 
-        # 10. Generate the shifts
+
+        # Record the shifts on the database
         from database import insert_shift_data, delete_shift_data
         data_frame = pd.DataFrame(columns=['Employees','Start', 'End'])
         for i, shift in enumerate(shifts):
@@ -302,8 +315,12 @@ def Modelling():
 
 
         # calculate some differences (hours over budget, hours over labour model)
-        hours_over_budget = data_to_save['Labour Model Hours'].sum() - data_to_save['Budget Rota Hours'].sum()
+        hours_over_budget = sum(rota) - data_to_save['Budget Rota Hours'].sum()
         hours_over_labour_model = sum(rota) - data_to_save['Labour Model Hours'].sum()
+        hours_over_actuals = sum(rota) - data_to_save["Actual Hours '22"].sum()
+
+        labour_model_over_actuals = data_to_save['Labour Model Hours'].sum() - data_to_save["Actual Hours '22"].sum()
+        labour_model_over_budget = data_to_save['Labour Model Hours'].sum() - data_to_save['Budget Rota Hours'].sum()
 
         # 11. Chart with difference between budget and rota hour by hour
         fig = go.Figure()
@@ -316,11 +333,20 @@ def Modelling():
 
         # 12. Show the data
         c1,c2 = st.columns(2)
+        
         c1.subheader('Shift Structure')
         c1.write(data_frame)
-        c1.write(f'Hours over budget: {hours_over_budget}')
-        c1.write(f'Hours over labour model: {hours_over_labour_model}')
         c2.plotly_chart(fig, use_container_width=True)
+        st.write('---')
+        c1,c2, c3 = st.columns(3)
+        c1.write(f'**Generated Rota vs Budget**: {hours_over_budget}')
+        c1.write(f'**Generated Rota vs Actuals**: {hours_over_actuals}')
+        c2.write(f'**Generated Rota vs Labour Model**: {hours_over_labour_model}')
+
+        c3.write(f'**Labour model over budget**: {labour_model_over_budget}')
+        c3.write(f'**Labour model over actuals**: {labour_model_over_actuals}')
+
+    
     
     if day_ != 'Week Rota':
         handle_single_d(data, day_, deletion=True)
@@ -328,26 +354,19 @@ def Modelling():
     else:
         delete_shift_data()
         delete_data()
-        # for all days
         days_ = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         expander_percentiles.write('---')
         for day, date in zip(days_, dates):
-            #st.write('Day: ', day)
-            # filter the day
-            data = df[df['Day'] == day]
-            # filter the department
-            data = data[data['Department'] == department]
             date = str(date)
-            # if the date is a holiday
+            data = df[df['Day'] == day]
+            data = data[data['Department'] == department]
             if date in df_holidays['Date'].values:
-                # get the holiday name, and add it to the expander
                 holiday_name = df_holidays[df_holidays['Date'] == date]['Holiday'].values[0]
                 with st.expander(f'{date} - **{day}** - {holiday_name}'):
-                    #st.write(data)
                     handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc, month=month)
             else:
-                # if the date is not a holiday, just add the day to the expander
                 with st.expander(f'{date} - **{day}**'):
-                    #st.write(data)
                     handle_single_d(data, day, deletion=False, percentile_message= percentile_message, percentile_for_all=select_perc, month=month)
+
+
 Modelling()         

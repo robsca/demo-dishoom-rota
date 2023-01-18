@@ -21,7 +21,7 @@ def validity_shift_checker(sl, min_hours=4, max_hours=8):
             st.warning('Shift too long')
         return False
 
-def handle_one_day(d, constraints_table, shifts_table):
+def handle_one_day(d, constraints_table, shifts_table, save=False):
     constraints_table_, shifts_table_  = [i for i in constraints_table if i[3] == d] , [i for i in shifts_table if i[3] == d]
     #--------------------------------------------
     try:
@@ -131,14 +131,24 @@ def handle_one_day(d, constraints_table, shifts_table):
             c2.write(new_shifts)
 
             with c2: # SAVE BUTTON 
-                # SAVE All button
-                if st.button('Save', key=f'{department} : {d}'):
-                    st.write('Saving')
-                    # delete rota data of the same day
+                if save == False:
+                    save_button = st.button('Save', key=f'{department} : {d}')
+                    if save_button:
+                        st.write('Saving')
+                        # delete rota data of the same day
+                        delete_rota_data_same_day(day, department, site_code)
+                        # save rota to database
+                        for index, row in new_shifts.iterrows():
+                            insert_rota_data(site_code, department, month, day, row['Start'], row['End'])
+                        st.success('Saved')
+                else:
                     delete_rota_data_same_day(day, department, site_code)
                     # save rota to database
                     for index, row in new_shifts.iterrows():
                         insert_rota_data(site_code, department, month, day, row['Start'], row['End'])
+                    st.success('Saved')
+
+
 
     except:
         pass
@@ -152,6 +162,13 @@ def shift_adjustments():
     if day_ == 'Week Rota':
         for d in days: # iterate through the days
             handle_one_day(d, constraints_table, shifts_table)
+
+        # save_b = st.button('Save All')
+        # if save_b:
+        #     st.success('Saving all days')
+        #     for d in days:
+        #         handle_one_day(d, constraints_table, shifts_table, save=True)
+
     else:
         handle_one_day(day_, constraints_table, shifts_table)
     
