@@ -2,7 +2,7 @@ import streamlit as st
 st.set_page_config(layout='wide',initial_sidebar_state='expanded')
 import pandas as pd; import random; import plotly.graph_objects as go
 
-path_1 = 'Labour_Model_Hours_all.csv'
+path_1 = 'Labour_Model_Hours_alls.csv'
 # The script will now take the data and model it to get the averages.
 
 
